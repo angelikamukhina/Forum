@@ -3,13 +3,16 @@ package ru.spbau.mit.forum.client;
 
 import ru.spbau.mit.forum.Message;
 
+import java.io.IOException;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Client {
     private Socket socket;
-    public void start(String hostname, int port) {
+    void start(String hostname, int port) throws IOException {
+        socket = new Socket(hostname, port);
     }
 
     public List<Message> getNewMessages() {
