@@ -2,7 +2,6 @@ package ru.spbau.mit.forum.client;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import ru.spbau.mit.forum.Message;
 import ru.spbau.mit.forum.protocol.HTTPRequest;
 import ru.spbau.mit.forum.protocol.HTTPResponse;
 
@@ -10,10 +9,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.net.SocketException;
+import java.util.*;
 
 public class CommandInterpreter {
     private Scanner scanner;
@@ -28,14 +25,14 @@ public class CommandInterpreter {
         out = socket.getOutputStream();
     }
 
-    public boolean interpret() {
+    public boolean interpret() throws SocketException {
         HTTPResponse response = null;
         String command = scanner.next();
         try {
             switch (command) {
                 case ":q":
                     response = closeConnection();
-                    // что приходит;
+                    parseStop(response);
                     return false;
                 case "hierarchy":
                     response = getForumHierarchy();
@@ -65,12 +62,15 @@ public class CommandInterpreter {
                 case ":register":
                     String name = scanner.next();
                     response = register(name);
+                    parseRegisterResponce(response);
                     break;
                 case ":new":
                     response = getNewMessages();
+                    parseNewMessages(response);
                     break;
                 case ":online":
                     response = getClientsOnline();
+                    parseOnline(response);
                     break;
                 default:
                     System.out.println("Unknown command");
@@ -136,10 +136,7 @@ public class CommandInterpreter {
     }
 
     private void parseHierarchyResponse(HTTPResponse response) {
-        if (response.getStatus() == 401) {
-            System.out.println("You are not registered");
-            return;
-        }
+        if (!checkRegister(response)) return;
         JSONObject body = response.getJSONBody();
         int count = body.getInt("AMOUNT");
         if (branches == null) {
@@ -155,7 +152,7 @@ public class CommandInterpreter {
                 JSONObject object = messages.getJSONObject(j);
                 System.out.println(
                         branch + ": " +
-                        object.getString("NAME") + " in " +
+                        object.getString("AUTHOR") + " in " +
                         object.getString("DATE") + " posted: " +
                         object.getString("TEXT")
                 );
@@ -164,10 +161,7 @@ public class CommandInterpreter {
     }
 
     private void parsePutResponse(HTTPResponse response) {
-        if (response.getStatus() == 401) {
-            System.out.println("You are not registered");
-            return;
-        }
+        if (!checkRegister(response)) return;
         if (response.getStatus() == 200) {
             System.out.println("Your message is posted");
         }
@@ -180,5 +174,52 @@ public class CommandInterpreter {
         if (response.getStatus() == 409) {
             System.out.println("This name already exists");
         }
+    }
+
+    private void parseNewMessages(HTTPResponse response) {
+        if (!checkRegister(response)) return;
+        JSONObject body = response.getJSONBody();
+        if (response.getStatus() == 200) {
+            JSONArray messages = body.getJSONArray("MESSAGES");
+            for (int i = 0; i < messages.length(); i++) {
+                JSONObject object = messages.getJSONObject(i);
+                if (!activeBranch.equals("ALL")) {
+                    System.out.print(object.getString("BRANCH") + ": ");
+                }
+                System.out.println(
+                                object.getString("AUTHOR") + " in " +
+                                object.getString("DATE") + " posted: " +
+                                object.getString("TEXT")
+                );
+            }
+        }
+    }
+
+    private void parseOnline(HTTPResponse response) {
+        if (!checkRegister(response)) return;
+        if (response.getStatus() == 200) {
+            System.out.println("Now is online:");
+            JSONObject body = response.getJSONBody();
+            int count = body.getInt("AMOUNT");
+            for (int i = 0; i < count; i++) {
+                System.out.println(body.getString("CLIENT" + i));
+            }
+        }
+    }
+
+    private void parseStop(HTTPResponse response) {
+        if (response.getStatus() == 200) {
+            System.out.println("Connection is broken");
+        } else {
+            System.out.println("Connection isn't broken correctly");
+        }
+    }
+
+    private boolean checkRegister(HTTPResponse response) {
+        if (response.getStatus() == 401) {
+            System.out.println("You are not registered");
+            return false;
+        }
+        return true;
     }
 }

@@ -153,6 +153,7 @@ class ClientHandler implements Runnable {
         JSONArray messagesJSON = new JSONArray();
         for (Message message : messages) {
             JSONObject messageJSON = new JSONObject();
+            messageJSON.put("BRANCH", message.getBranch());
             messageJSON.put("AUTHOR", message.getAuthor());
             messageJSON.put("DATE", message.getDate().toString());
             messageJSON.put("TEXT", message.getText());
@@ -167,7 +168,7 @@ class ClientHandler implements Runnable {
             body.put("AMOUNT", clients.size());
             int counter = 0;
             for (Map.Entry client : clients.entrySet()) {
-                body.put("CLIENT" + counter, client);
+                body.put("CLIENT" + counter, client.getKey());
                 counter ++;
             }
         }

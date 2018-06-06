@@ -21,6 +21,8 @@ public class Message {
         this.date = date;
     }
 
+    public String getBranch() { return branch; }
+
     public String getAuthor() {
         return author;
     }

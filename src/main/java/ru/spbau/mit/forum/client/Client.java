@@ -2,6 +2,7 @@ package ru.spbau.mit.forum.client;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Scanner;
 
 public class Client implements AutoCloseable {
@@ -23,7 +24,14 @@ public class Client implements AutoCloseable {
     public void run() throws IOException {
         boolean isContinue = true;
         while (isContinue) {
-            isContinue = interpreter.interpret();
+            try {
+                isContinue = interpreter.interpret();
+                System.out.print("> ");
+            } catch (SocketException exception) {
+                onConnectionClosedForcibly();
+                isContinue = false;
+            }
+
         }
         close();
     }
@@ -38,5 +46,6 @@ public class Client implements AutoCloseable {
     }
 
     public void onConnectionClosedForcibly() {
+        System.out.println("Connection was broken by the server");
     }
 }
