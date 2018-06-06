@@ -14,8 +14,8 @@ public class Branch {
         this.messages = new PriorityQueue<Message>(INITIAL_CAPACITY, new MessageComparator());
     }
 
-    public void addToBranch(int id, String author, String text) {
-        messages.add(new Message(id, name, author, text));
+    public void addToBranch(String author, String text) {
+        messages.add(new Message(name, author, text));
     }
 
     public List<Message> getMessages() {

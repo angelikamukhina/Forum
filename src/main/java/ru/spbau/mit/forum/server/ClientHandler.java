@@ -2,6 +2,7 @@ package ru.spbau.mit.forum.server;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import ru.spbau.mit.forum.Branch;
 import ru.spbau.mit.forum.Message;
 import ru.spbau.mit.forum.protocol.HTTPRequest;
 import ru.spbau.mit.forum.protocol.HTTPResponse;
@@ -9,20 +10,17 @@ import ru.spbau.mit.forum.protocol.HTTPResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 class ClientHandler implements Runnable {
     private Socket clientSocket;
     private String clientName;
     private final Set<String> clients;
-    private Set<String> branches;
+    private List<Branch> branches;
     private final List<Message> messages;
     private Date lastUpdate;
 
-    public ClientHandler(Socket clientSocket, Set<String> clients, Set<String> branches, List<Message> messages) {
+    ClientHandler(Socket clientSocket, Set<String> clients, List<Branch> branches, List<Message> messages) {
         this.clientSocket = clientSocket;
         this.clients = clients;
         this.branches = branches;
@@ -38,8 +36,24 @@ class ClientHandler implements Runnable {
             System.out.println("Unable to set the connection");
             return;
         }
+
+        try {
+            HTTPRequest request = HTTPRequest.parse(inputStream);
+            while (request.getCommand() != HTTPRequest.CommandType.REGISTER) {
+                HTTPResponse notRegisteredResponse = new HTTPResponse(
+                        401,
+                        "Please, introduce yourself",
+                        Collections.emptyList());
+                notRegisteredResponse.writeToStream(clientSocket.getOutputStream());
+            }
+
+            register(request);
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+
+        HTTPRequest request;
         while (true) {
-            HTTPRequest request;
             try {
                 request = HTTPRequest.parse(inputStream);
             } catch (IOException e) {
@@ -74,31 +88,30 @@ class ClientHandler implements Runnable {
         }
     }
 
-    private void register(HTTPRequest request) {
+    private void register(HTTPRequest request) throws IOException {
         String name = request.getJSONBody().getString("NAME");
+        if (clients.contains(name)) {
+            HTTPResponse nameAlreadyExistsResponse = new HTTPResponse(
+                    409,
+                    "The name already exists", Collections.emptyList());
+            nameAlreadyExistsResponse.writeToStream(clientSocket.getOutputStream());
+            return;
+        }
         clients.add(name);
         clientName = name;
     }
 
     private void putNewMessage(HTTPRequest request) {
         JSONObject body = request.getJSONBody();
-        String branch = body.getString("BRANCH");
+        int branch = body.getInt("BRANCH");
         String text = body.getString("TEXT");
-        synchronized (messages) {
-            int id = messages.size();
-            Message message = new Message(id, branch, clientName, text);
-            messages.add(message);
-        }
+        branches.get(branch).addToBranch(clientName, text);
     }
 
     private void sendNewMessages() throws IOException {
         List<Message> newMessages = new ArrayList<>();
-        synchronized (messages) {
-            for (Message message : messages) {
-                if (message.getDate().after(lastUpdate)) {
-                    newMessages.add(message);
-                }
-            }
+        for (Branch branch : branches) {
+            newMessages.addAll(branch.getMessageAfter(lastUpdate));
         }
         lastUpdate = new Date();
         JSONArray newMessagesJSON = new JSONArray(newMessages);
@@ -113,8 +126,9 @@ class ClientHandler implements Runnable {
         JSONObject body = new JSONObject();
         body.put("AMOUNT", branches.size());
         int counter = 0;
-        for (String branch : branches) {
+        for (Branch branch : branches) {
             body.put("BRANCH" + counter, branch);
+            body.put("MESSAGES" + counter, branch.getMessages());
             counter++;
         }
         String stringBody = body.toString();

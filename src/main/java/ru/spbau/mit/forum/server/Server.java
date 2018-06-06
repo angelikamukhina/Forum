@@ -1,6 +1,7 @@
 package ru.spbau.mit.forum.server;
 
 
+import ru.spbau.mit.forum.Branch;
 import ru.spbau.mit.forum.Message;
 
 import java.io.IOException;
@@ -14,7 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
-    private Set<String> branches = new HashSet<>(Arrays.asList("Алгоритмы", "C++", "Java"));
+    private List<Branch> branches;
     private ServerSocket serverSocket;
     private Set<String> clients;
     private List<Message> messages;
