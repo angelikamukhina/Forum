@@ -15,16 +15,14 @@ import java.util.*;
 class ClientHandler implements Runnable {
     private Socket clientSocket;
     private String clientName;
-    private final Set<String> clients;
+    private final Map<String, Socket> clients;
     private List<Branch> branches;
-    private final List<Message> messages;
     private Date lastUpdate;
 
-    ClientHandler(Socket clientSocket, Set<String> clients, List<Branch> branches, List<Message> messages) {
+    ClientHandler(Socket clientSocket, Map<String, Socket> clients, List<Branch> branches) {
         this.clientSocket = clientSocket;
         this.clients = clients;
         this.branches = branches;
-        this.messages = messages;
     }
 
     @Override
@@ -66,7 +64,7 @@ class ClientHandler implements Runnable {
                         register(request);
                         break;
                     case NEW_MESSAGES:
-                        sendNewMessages();
+                        sendNewMessages(request);
                         break;
                     case HIERARCHY:
                         sendHierarchy();
@@ -90,35 +88,47 @@ class ClientHandler implements Runnable {
 
     private void register(HTTPRequest request) throws IOException {
         String name = request.getJSONBody().getString("NAME");
-        if (clients.contains(name)) {
+        if (clients.containsKey(name)) {
             HTTPResponse nameAlreadyExistsResponse = new HTTPResponse(
                     409,
                     "The name already exists", Collections.emptyList());
             nameAlreadyExistsResponse.writeToStream(clientSocket.getOutputStream());
             return;
         }
-        clients.add(name);
+        clients.put(name, clientSocket);
         clientName = name;
+        HTTPResponse response = new HTTPResponse(200, "OK", Collections.emptyList());
+        response.writeToStream(clientSocket.getOutputStream());
     }
 
-    private void putNewMessage(HTTPRequest request) {
+    private void putNewMessage(HTTPRequest request) throws IOException {
         JSONObject body = request.getJSONBody();
         int branch = body.getInt("BRANCH");
         String text = body.getString("TEXT");
         branches.get(branch).addToBranch(clientName, text);
+        HTTPResponse response = new HTTPResponse(200, "OK", Collections.emptyList());
+        response.writeToStream(clientSocket.getOutputStream());
     }
 
-    private void sendNewMessages() throws IOException {
-        List<Message> newMessages = new ArrayList<>();
-        for (Branch branch : branches) {
-            newMessages.addAll(branch.getMessageAfter(lastUpdate));
+    private void sendNewMessages(HTTPRequest request) throws IOException {
+        JSONObject body = request.getJSONBody();
+        int branchIdx = body.getInt("BRANCH");
+        List<Message> newMessages;
+        if (branchIdx != -1) {
+            newMessages = branches.get(branchIdx).getMessageAfter(lastUpdate);
+        } else {
+            newMessages = new ArrayList<>();
+            for (Branch branch : branches) {
+                newMessages.addAll(branch.getMessageAfter(lastUpdate));
+            }
         }
         lastUpdate = new Date();
-        JSONArray newMessagesJSON = new JSONArray(newMessages);
-        String messagesString = newMessagesJSON.toString();
-        List<String> body = new ArrayList<>();
-        body.add(messagesString);
-        HTTPResponse response = new HTTPResponse(200, "OK", body);
+
+        JSONArray newMessagesJSON = messagesToJSONArray(newMessages);
+        JSONObject responseBody = new JSONObject();
+        responseBody.put("MESSAGES", newMessagesJSON);
+        List<String> responseString = Collections.singletonList(responseBody.toString());
+        HTTPResponse response = new HTTPResponse(200, "OK", responseString);
         response.writeToStream(clientSocket.getOutputStream());
     }
 
@@ -127,15 +137,28 @@ class ClientHandler implements Runnable {
         body.put("AMOUNT", branches.size());
         int counter = 0;
         for (Branch branch : branches) {
-            body.put("BRANCH" + counter, branch);
-            body.put("MESSAGES" + counter, branch.getMessages());
+            body.put("BRANCH" + counter, branch.getName());
+            List<Message> messages = branch.getMessages();
+            JSONArray messagesJSON = messagesToJSONArray(messages);
+            body.put("MESSAGES" + counter, messagesJSON);
             counter++;
         }
         String stringBody = body.toString();
-        List<String> bodyList = new ArrayList<>();
-        bodyList.add(stringBody);
+        List<String> bodyList = Collections.singletonList(stringBody);
         HTTPResponse response = new HTTPResponse(200, "OK", bodyList);
         response.writeToStream(clientSocket.getOutputStream());
+    }
+
+    private JSONArray messagesToJSONArray(List<Message> messages) {
+        JSONArray messagesJSON = new JSONArray();
+        for (Message message : messages) {
+            JSONObject messageJSON = new JSONObject();
+            messageJSON.put("AUTHOR", message.getAuthor());
+            messageJSON.put("DATE", message.getDate().toString());
+            messageJSON.put("TEXT", message.getText());
+            messagesJSON.put(messageJSON);
+        }
+        return messagesJSON;
     }
 
     private void sendClientsOnline() throws IOException {
@@ -143,7 +166,7 @@ class ClientHandler implements Runnable {
         synchronized (clients) {
             body.put("AMOUNT", clients.size());
             int counter = 0;
-            for (String client : clients) {
+            for (Map.Entry client : clients.entrySet()) {
                 body.put("CLIENT" + counter, client);
                 counter ++;
             }
@@ -155,6 +178,9 @@ class ClientHandler implements Runnable {
         response.writeToStream(clientSocket.getOutputStream());
     }
 
-    private void stopConnection() {
+    private void stopConnection() throws IOException {
+        clients.remove(clientName);
+        HTTPResponse response = new HTTPResponse(200, "OK", Collections.emptyList());
+        response.writeToStream(clientSocket.getOutputStream());
     }
 }

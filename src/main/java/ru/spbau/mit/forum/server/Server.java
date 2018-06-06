@@ -9,27 +9,23 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
     private List<Branch> branches;
     private ServerSocket serverSocket;
-    private Set<String> clients;
-    private List<Message> messages;
+    private Map<String, Socket> clients;
 
     public void start(int port, int threadsNumber) throws IOException {
         ExecutorService threadPool = Executors.newFixedThreadPool(threadsNumber);
         serverSocket = new ServerSocket(port);
-        clients = new CopyOnWriteArraySet<>();
-        messages = new CopyOnWriteArrayList<>();
+        clients = new HashMap<>();
 
         try {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                threadPool.submit(new ClientHandler(clientSocket, clients, branches, messages));
+                threadPool.submit(new ClientHandler(clientSocket, clients, branches));
             }
         } catch (SocketException ignored) {
         }
@@ -39,5 +35,6 @@ public class Server {
     }
 
     public void closeConnection(String clientName) {
+
     }
 }
