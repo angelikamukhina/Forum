@@ -4,12 +4,12 @@ import java.util.Date;
 
 public class Message {
     private int id;
-    private int branch;
+    private String branch;
     private String author;
     private String text;
     private Date date;
 
-    public Message(int id, int branch, String author, String text) {
+    public Message(int id, String branch, String author, String text) {
         this.id = id;
         this.branch = branch;
         this.author = author;
