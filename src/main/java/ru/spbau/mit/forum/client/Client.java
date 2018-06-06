@@ -1,39 +1,40 @@
 package ru.spbau.mit.forum.client;
 
-
-import ru.spbau.mit.forum.Message;
-
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Scanner;
 
-public class Client {
+public class Client implements AutoCloseable {
     private Socket socket;
-    void start(String hostname, int port) throws IOException {
-        socket = new Socket(hostname, port);
+    private final String host;
+    private final int port;
+    private CommandInterpreter interpreter;
+
+    public Client(String host, int port) {
+        this.host = host;
+        this.port = port;
     }
 
-    public List<Message> getNewMessages() {
-        return new ArrayList<>();
+    public void connect(Scanner scanner) throws IOException {
+        socket = new Socket(host, port);
+        interpreter = new CommandInterpreter(socket, scanner);
     }
 
-    public List<String> getForumHierarchy() {
-        return new ArrayList<>();
+    public void run() throws IOException {
+        boolean isContinue = true;
+        while (isContinue) {
+            isContinue = interpreter.interpret();
+        }
+        close();
     }
 
-    public void chooseBranch(String branch) {
-    }
-
-    public void putNewMessage(String branch, Message message) {
-    }
-
-    public List<String> getClientsOnline() {
-        return new ArrayList<>();
-    }
-
-    public void closeConnection() {
+    @Override
+    public void close() {
+        try {
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void onConnectionClosedForcibly() {

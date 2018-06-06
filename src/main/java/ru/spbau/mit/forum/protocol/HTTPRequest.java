@@ -2,14 +2,12 @@ package ru.spbau.mit.forum.protocol;
 
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class HTTPRequest {
+    private static final String VERSION = "HTTP/1.1";
     private String type;
     private CommandType command;
     private List<String> body;
@@ -35,10 +33,10 @@ public class HTTPRequest {
         String line = reader.readLine();
         String[] lineParts = line.split(" ");
         String type = lineParts[0];
-        String command = lineParts[1].substring(1);
         do {
             line = reader.readLine();
         } while (!line.isEmpty());
+        String command = reader.readLine();
         List<String> body = new ArrayList<>();
         line = reader.readLine();
         while (!line.isEmpty()) {
@@ -48,7 +46,18 @@ public class HTTPRequest {
         return new HTTPRequest(type, command, body);
     }
 
-    private HTTPRequest(String type, String command, List<String> body) {
+    public void writeToStream(OutputStream out) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+        writer.write(type + " " + VERSION + "\n");
+        writer.write("\n");
+        writer.write(command + "\n");
+        for (String line : body) {
+            writer.write(line);
+        }
+        writer.write("\n");
+    }
+
+    public HTTPRequest(String type, String command, List<String> body) {
         this.type = type;
         switch (command) {
             case "REGISTER":
