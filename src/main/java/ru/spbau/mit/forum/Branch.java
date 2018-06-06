@@ -14,7 +14,7 @@ public class Branch {
         this.messages = new PriorityQueue<Message>(INITIAL_CAPACITY, new MessageComparator());
     }
 
-    public void addToBranch(int id, String author, String text) {
+    public synchronized void addToBranch(int id, String author, String text) {
         messages.add(new Message(id, name, author, text));
     }
 
@@ -24,7 +24,15 @@ public class Branch {
 
     public List<Message> getMessageAfter(Date date) {
         List<Message> all = messages.stream().collect(Collectors.toList());
-        // добавлю поиск
-        return all; // пока
+        List<Message> newPost = new ArrayList<>();
+        synchronized (this) {
+            int position = Collections.binarySearch(all, new Message(name, date), new MessageComparator());
+            if (position > 0) {
+                newPost = all.subList(position, all.size());
+            } else {
+                newPost = all.subList((position + 1) * -1, all.size());
+            }
+        }
+        return newPost;
     }
 }

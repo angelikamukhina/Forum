@@ -17,6 +17,12 @@ public class Message {
         date = new Date();
     }
 
+    // Подставной message для поиска в списке
+    public Message(String branch, Date date) {
+        this.branch = branch;
+        this.date = date;
+    }
+
     public String getAuthor() {
         return author;
     }
