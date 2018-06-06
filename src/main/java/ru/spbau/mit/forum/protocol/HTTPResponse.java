@@ -20,6 +20,10 @@ public class HTTPResponse {
         return new JSONObject(concatenated);
     }
 
+    public int getStatus() {
+        return statusCode;
+    }
+
     public HTTPResponse(int statusCode, String reasonPhrase, List<String> body) {
         this.statusCode = statusCode;
         this.reasonPhrase = reasonPhrase;

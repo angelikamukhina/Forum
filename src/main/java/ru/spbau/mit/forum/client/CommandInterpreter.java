@@ -1,5 +1,6 @@
 package ru.spbau.mit.forum.client;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import ru.spbau.mit.forum.Message;
 import ru.spbau.mit.forum.protocol.HTTPRequest;
@@ -9,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -37,6 +39,7 @@ public class CommandInterpreter {
                     return false;
                 case "hierarchy":
                     response = getForumHierarchy();
+                    parseHierarchyResponse(response);
                     break;
                 case ":set":
                     if (branches == null) {
@@ -56,6 +59,7 @@ public class CommandInterpreter {
                     } else {
                         String message = scanner.next();
                         response = putNewMessage(message);
+                        parsePutResponse(response);
                     }
                     break;
                 case ":register":
@@ -132,7 +136,49 @@ public class CommandInterpreter {
     }
 
     private void parseHierarchyResponse(HTTPResponse response) {
+        if (response.getStatus() == 401) {
+            System.out.println("You are not registered");
+            return;
+        }
         JSONObject body = response.getJSONBody();
+        int count = body.getInt("AMOUNT");
+        if (branches == null) {
+            branches = new ArrayList<String>();
+        }
+        for (int i = 0; i < count; i++) {
+            String branch = body.getString("BRANCH" + i);
+            if (branches.size() < count) {
+                branches.add(branch);
+            }
+            JSONArray messages = body.getJSONArray("MESSAGES");
+            for (int j = 0; j < messages.length(); j++) {
+                JSONObject object = messages.getJSONObject(j);
+                System.out.println(
+                        branch + ": " +
+                        object.getString("NAME") + " in " +
+                        object.getString("DATE") + " posted: " +
+                        object.getString("TEXT")
+                );
+            }
+        }
+    }
 
+    private void parsePutResponse(HTTPResponse response) {
+        if (response.getStatus() == 401) {
+            System.out.println("You are not registered");
+            return;
+        }
+        if (response.getStatus() == 200) {
+            System.out.println("Your message is posted");
+        }
+    }
+
+    private void parseRegisterResponce(HTTPResponse response) {
+        if (response.getStatus() == 200) {
+            System.out.println("You are successfully registered");
+        }
+        if (response.getStatus() == 409) {
+            System.out.println("This name already exists");
+        }
     }
 }
