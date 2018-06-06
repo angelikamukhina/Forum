@@ -19,7 +19,7 @@ public class Main {
         System.out.println("Enter forum server port");
         int port;
         try {
-            port = Integer.getInteger(reader.readLine());
+            port = Integer.valueOf(reader.readLine());
         } catch (IOException e) {
             System.out.println("Error while reading port");
             return;

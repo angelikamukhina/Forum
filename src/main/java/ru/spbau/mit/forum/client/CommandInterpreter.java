@@ -34,7 +34,7 @@ public class CommandInterpreter {
                     response = closeConnection();
                     parseStop(response);
                     return false;
-                case "hierarchy":
+                case ":hierarchy":
                     response = getForumHierarchy();
                     parseHierarchyResponse(response);
                     break;

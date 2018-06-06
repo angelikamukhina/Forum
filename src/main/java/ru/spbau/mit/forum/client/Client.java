@@ -25,8 +25,8 @@ public class Client implements AutoCloseable {
         boolean isContinue = true;
         while (isContinue) {
             try {
-                isContinue = interpreter.interpret();
                 System.out.print("> ");
+                isContinue = interpreter.interpret();
             } catch (SocketException exception) {
                 onConnectionClosedForcibly();
                 isContinue = false;
