@@ -13,11 +13,11 @@ public class HTTPResponse {
     private List<String> body;
 
     public JSONObject getJSONBody() {
-        StringBuilder concatenated = new StringBuilder();
-        for (String line : body) {
-            concatenated.append(line);
-        }
-        return new JSONObject(concatenated);
+//        StringBuilder concatenated = new StringBuilder();
+//        for (String line : body) {
+//            concatenated.append(line);
+//        }
+        return new JSONObject(body.get(0));
     }
 
     public int getStatus() {

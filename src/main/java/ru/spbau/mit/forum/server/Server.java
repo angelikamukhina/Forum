@@ -13,7 +13,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
-    private List<Branch> branches;
+    private List<Branch> branches = Arrays.asList(
+            new Branch("Алгоритмы"),
+            new Branch("С++"),
+            new Branch("Java"),
+            new Branch("Python"));
     private ServerSocket serverSocket;
     private Map<String, Socket> clients;
 

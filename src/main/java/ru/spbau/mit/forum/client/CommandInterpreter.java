@@ -147,7 +147,7 @@ public class CommandInterpreter {
             if (branches.size() < count) {
                 branches.add(branch);
             }
-            JSONArray messages = body.getJSONArray("MESSAGES");
+            JSONArray messages = body.getJSONArray("MESSAGES" + i);
             for (int j = 0; j < messages.length(); j++) {
                 JSONObject object = messages.getJSONObject(j);
                 System.out.println(
