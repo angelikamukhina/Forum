@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 public class Server {
     private List<Branch> branches = Arrays.asList(
             new Branch("Алгоритмы"),
-            new Branch("С++"),
+            new Branch("C++"),
             new Branch("Java"),
             new Branch("Python"));
     private ServerSocket serverSocket;
@@ -27,6 +27,7 @@ public class Server {
         clients = new HashMap<>();
 
         try {
+            System.out.println("Server is running");
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 threadPool.submit(new ClientHandler(clientSocket, clients, branches));
@@ -36,9 +37,24 @@ public class Server {
     }
 
     public void stop() {
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            System.out.println("Error while stopping the server");
+        }
     }
 
     public void closeConnection(String clientName) {
-
+        if (clients.containsKey(clientName)) {
+            Socket clientSocket = clients.get(clientName);
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                System.out.println("Error while closing connection with " + clientName);
+            }
+            clients.remove(clientName);
+        } else {
+            System.out.println("There is no online client with name: " + clientName);
+        }
     }
 }

@@ -10,6 +10,7 @@ import ru.spbau.mit.forum.protocol.HTTPResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.*;
 
 class ClientHandler implements Runnable {
@@ -54,6 +55,8 @@ class ClientHandler implements Runnable {
         while (true) {
             try {
                 request = HTTPRequest.parse(inputStream);
+            } catch (SocketException e) {
+                return;
             } catch (IOException e) {
                 System.out.println("Unable to parse http request");
                 return;
@@ -79,6 +82,7 @@ class ClientHandler implements Runnable {
                         stopConnection();
                         break;
                 }
+            } catch (SocketException ignored) {
             } catch (IOException e) {
                 System.out.println("Error while requests processing");
                 return;
@@ -96,6 +100,7 @@ class ClientHandler implements Runnable {
             return;
         }
         clients.put(name, clientSocket);
+        System.out.println("New client " + name + " is online");
         clientName = name;
         HTTPResponse response = new HTTPResponse(200, "OK", Collections.emptyList());
         response.writeToStream(clientSocket.getOutputStream());
@@ -183,5 +188,6 @@ class ClientHandler implements Runnable {
         clients.remove(clientName);
         HTTPResponse response = new HTTPResponse(200, "OK", Collections.emptyList());
         response.writeToStream(clientSocket.getOutputStream());
+        System.out.println("Client " + clientName + " is offline");
     }
 }
