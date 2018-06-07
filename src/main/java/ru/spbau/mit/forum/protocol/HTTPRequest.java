@@ -53,8 +53,11 @@ public class HTTPRequest {
         writer.write(command + "\n");
         for (String line : body) {
             writer.write(line);
+            writer.write("\n");
         }
         writer.write("\n");
+        writer.flush();
+        out.flush();
     }
 
     public HTTPRequest(String type, String command, List<String> body) {
