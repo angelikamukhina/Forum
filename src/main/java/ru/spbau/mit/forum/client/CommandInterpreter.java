@@ -54,8 +54,8 @@ public class CommandInterpreter {
                     if (activeBranch.equals("ALL")) {
                         System.out.println("You must set source branch");
                     } else {
-                        String message = scanner.next();
-                        response = putNewMessage(message);
+                        String message = scanner.nextLine();
+                        response = putNewMessage(message.substring(1));
                         parsePutResponse(response);
                     }
                     break;
@@ -115,7 +115,7 @@ public class CommandInterpreter {
 
     private HTTPResponse putNewMessage(String message) throws IOException {
         JSONObject body = new JSONObject();
-        int index = branches.indexOf(message);
+        int index = branches.indexOf(activeBranch);
         body.put("BRANCH", index);
         body.put("TEXT", message);
         HTTPRequest put = new HTTPRequest("POST", "PUT", Arrays.asList(body.toString()));
@@ -147,6 +147,7 @@ public class CommandInterpreter {
             if (branches.size() < count) {
                 branches.add(branch);
             }
+            System.out.println(branch + '\n');
             JSONArray messages = body.getJSONArray("MESSAGES" + i);
             for (int j = 0; j < messages.length(); j++) {
                 JSONObject object = messages.getJSONObject(j);
