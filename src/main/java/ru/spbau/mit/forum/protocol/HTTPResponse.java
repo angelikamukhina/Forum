@@ -36,8 +36,11 @@ public class HTTPResponse {
         writer.write("\n");
         for (String line : body) {
             writer.write(line);
+            writer.write("\n");
         }
         writer.write("\n");
+        writer.flush();
+        outputStream.flush();
     }
 
     public static HTTPResponse parse(InputStream in) throws IOException {
