@@ -20,26 +20,30 @@ public class Main {
         });
 
         serverThread.start();
+        printUsage();
         boolean stopped = false;
         while (!stopped) {
             String command = null;
             command = scanner.next();
             switch (command) {
-                case "close":
+                case ":close":
                     String clientName = scanner.next();
                     server.closeConnection(clientName);
                     break;
-                case "stop":
+                case ":stop":
                     server.stop();
                     stopped = true;
                     break;
                     default:
-                        System.out.println("Wrong command\n " +
-                                "usage: \n" +
-                                "close client_name -- for closing the connection with the client\n" +
-                                "stop -- for stopping the server" );
+                        System.out.println("Wrong command");
+                        printUsage();
             }
         }
+    }
 
+    private static void printUsage() {
+        System.out.println("usage: \n" +
+                ":close <client name> -- for closing the connection with the client\n" +
+                ":stop -- for stopping the server" );
     }
 }
