@@ -16,22 +16,17 @@ public class Client implements AutoCloseable {
         this.port = port;
     }
 
-    public void connect(Scanner scanner) throws IOException {
+    public void connect(Scanner scanner, String name) throws IOException {
         socket = new Socket(host, port);
         interpreter = new CommandInterpreter(socket, scanner);
+        interpreter.onConnectionSetted(name);
     }
 
     public void run() throws IOException {
         boolean isContinue = true;
         while (isContinue) {
-            try {
-                System.out.print("> ");
-                isContinue = interpreter.interpret();
-            } catch (SocketException exception) {
-                onConnectionClosedForcibly();
-                isContinue = false;
-            }
-
+            System.out.print("> ");
+            isContinue = interpreter.interpret();
         }
         close();
     }
@@ -43,9 +38,5 @@ public class Client implements AutoCloseable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public void onConnectionClosedForcibly() {
-        System.out.println("Connection was broken by the server");
     }
 }

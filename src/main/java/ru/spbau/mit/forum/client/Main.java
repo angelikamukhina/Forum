@@ -25,11 +25,20 @@ public class Main {
             return;
         }
 
+        System.out.println("Enter you name");
+        String name;
+        try {
+            name = reader.readLine();
+        } catch (IOException e) {
+            System.out.println("Error while reading name");
+            return;
+        }
+
         try (Client client = new Client(hostname, port)) {
-            client.connect(new Scanner(System.in));
+            client.connect(new Scanner(System.in), name);
             client.run();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Unexpected error");
         }
     }
 }

@@ -13,6 +13,15 @@ import java.net.SocketException;
 import java.util.*;
 
 public class CommandInterpreter {
+    private static String usage = ":q --- for closing connection\n" +
+            ":register <name> --- for registration\n" +
+            ":hierarchy [-m] --- for printing hierarchy [with messages]\n" +
+            ":set <branch_name> --- for setting active branch\n" +
+            ":put <message> --- for post to active branch\n" +
+            ":new --- for getting new message\n" +
+            ":online -- for getting online users\n" +
+            ":u --- for printing usage";
+
     private Scanner scanner;
     private InputStream in;
     private OutputStream out;
@@ -25,7 +34,14 @@ public class CommandInterpreter {
         out = socket.getOutputStream();
     }
 
-    public boolean interpret() throws SocketException {
+    public void onConnectionSetted(String name) throws IOException {
+        System.out.println("> :register " + name);
+        parseRegisterResponce(register(name));
+        System.out.println("> :hierarchy");
+        parseHierarchyResponse(getForumHierarchy(), false);
+    }
+
+    public boolean interpret() {
         HTTPResponse response = null;
         String command = scanner.next();
         try {
@@ -36,7 +52,12 @@ public class CommandInterpreter {
                     return false;
                 case ":hierarchy":
                     response = getForumHierarchy();
-                    parseHierarchyResponse(response);
+                    if (scanner.hasNext("-m")) {
+                        scanner.next();
+                        parseHierarchyResponse(response, true);
+                    } else {
+                        parseHierarchyResponse(response, false);
+                    }
                     break;
                 case ":set":
                     if (branches == null) {
@@ -72,9 +93,16 @@ public class CommandInterpreter {
                     response = getClientsOnline();
                     parseOnline(response);
                     break;
+                case ":u":
+                    System.out.println(usage);
+                    break;
                 default:
                     System.out.println("Unknown command");
+                    System.out.println(usage);
             }
+        } catch (SocketException exception) {
+            onConnectionClosedForcibly();
+            return false;
         } catch (IOException exception) {
             System.out.println("Unfortunately server can't to handle command");
             return true;
@@ -129,14 +157,13 @@ public class CommandInterpreter {
         return HTTPResponse.parse(in);
     }
 
-    public HTTPResponse getForumHierarchy() throws IOException {
+    private HTTPResponse getForumHierarchy() throws IOException {
         HTTPRequest hierarchy = new HTTPRequest("GET", "HIERARCHY", Arrays.asList());
         hierarchy.writeToStream(out);
         return HTTPResponse.parse(in);
     }
 
-    private void parseHierarchyResponse(HTTPResponse response) {
-        if (!checkRegister(response)) return;
+    private void printHierarchy(HTTPResponse response) {
         JSONObject body = response.getJSONBody();
         int count = body.getInt("AMOUNT");
         if (branches == null) {
@@ -147,16 +174,29 @@ public class CommandInterpreter {
             if (branches.size() < count) {
                 branches.add(branch);
             }
-            System.out.println(branch + '\n');
-            JSONArray messages = body.getJSONArray("MESSAGES" + i);
-            for (int j = 0; j < messages.length(); j++) {
-                JSONObject object = messages.getJSONObject(j);
-                System.out.println(
-                        branch + ": " +
-                        object.getString("AUTHOR") + " in " +
-                        object.getString("DATE") + " posted: " +
-                        object.getString("TEXT")
-                );
+            System.out.println(branch);
+        }
+        System.out.println("------------------------------------");
+    }
+
+    private void parseHierarchyResponse(HTTPResponse response, boolean printMessage) {
+        if (!checkRegister(response)) return;
+        printHierarchy(response);
+        if (printMessage) {
+            JSONObject body = response.getJSONBody();
+            int count = body.getInt("AMOUNT");
+            for (int i = 0; i < count; i++) {
+                String branch = body.getString("BRANCH" + i);
+                JSONArray messages = body.getJSONArray("MESSAGES" + i);
+                for (int j = 0; j < messages.length(); j++) {
+                    JSONObject object = messages.getJSONObject(j);
+                    System.out.println(
+                            branch + ": " +
+                                    object.getString("AUTHOR") + " in " +
+                                    object.getString("DATE") + " posted: " +
+                                    object.getString("TEXT")
+                    );
+                }
             }
         }
     }
@@ -222,5 +262,9 @@ public class CommandInterpreter {
             return false;
         }
         return true;
+    }
+
+    private void onConnectionClosedForcibly() {
+        System.out.println("Connection was broken by the server");
     }
 }
