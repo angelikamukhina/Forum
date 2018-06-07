@@ -15,11 +15,11 @@ import java.util.*;
 public class CommandInterpreter {
     private static String usage = ":q --- for closing connection\n" +
             ":register <name> --- for registration\n" +
-            ":hierarchy [-m] --- for printing hierarchy [with messages]\n" +
+            ":hierarchy --- for printing hierarchy\n" +
             ":set <branch_name> --- for setting active branch\n" +
             ":put <message> --- for post to active branch\n" +
             ":new --- for getting new message\n" +
-            ":online -- for getting online users\n" +
+            ":online --- for getting online users\n" +
             ":u --- for printing usage";
 
     private Scanner scanner;
@@ -38,7 +38,7 @@ public class CommandInterpreter {
         System.out.println("> :register " + name);
         parseRegisterResponce(register(name));
         System.out.println("> :hierarchy");
-        parseHierarchyResponse(getForumHierarchy(), false);
+        printHierarchy(getForumHierarchy());
     }
 
     public boolean interpret() {
@@ -52,12 +52,7 @@ public class CommandInterpreter {
                     return false;
                 case ":hierarchy":
                     response = getForumHierarchy();
-                    if (scanner.hasNext("-m")) {
-                        scanner.next();
-                        parseHierarchyResponse(response, true);
-                    } else {
-                        parseHierarchyResponse(response, false);
-                    }
+                    parseHierarchyResponse(response);
                     break;
                 case ":set":
                     if (branches == null) {
@@ -179,24 +174,22 @@ public class CommandInterpreter {
         System.out.println("------------------------------------");
     }
 
-    private void parseHierarchyResponse(HTTPResponse response, boolean printMessage) {
+    private void parseHierarchyResponse(HTTPResponse response) {
         if (!checkRegister(response)) return;
         printHierarchy(response);
-        if (printMessage) {
-            JSONObject body = response.getJSONBody();
-            int count = body.getInt("AMOUNT");
-            for (int i = 0; i < count; i++) {
-                String branch = body.getString("BRANCH" + i);
-                JSONArray messages = body.getJSONArray("MESSAGES" + i);
-                for (int j = 0; j < messages.length(); j++) {
-                    JSONObject object = messages.getJSONObject(j);
-                    System.out.println(
-                            branch + ": " +
-                                    object.getString("AUTHOR") + " in " +
-                                    object.getString("DATE") + " posted: " +
-                                    object.getString("TEXT")
-                    );
-                }
+        JSONObject body = response.getJSONBody();
+        int count = body.getInt("AMOUNT");
+        for (int i = 0; i < count; i++) {
+            String branch = body.getString("BRANCH" + i);
+            JSONArray messages = body.getJSONArray("MESSAGES" + i);
+            for (int j = 0; j < messages.length(); j++) {
+                JSONObject object = messages.getJSONObject(j);
+                System.out.println(
+                        branch + ": " +
+                                object.getString("AUTHOR") + " in " +
+                                object.getString("DATE") + " posted: " +
+                                object.getString("TEXT")
+                );
             }
         }
     }
